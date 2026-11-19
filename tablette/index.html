@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b0d10">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<title>Écran</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #0b0d10; color: #e9e6e1; overflow: hidden;
+    font-family: Roboto, "Segoe UI", Helvetica, Arial, sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  #app { display: -webkit-flex; display: flex; height: 100%; padding: 2.4vh 2vw; }
+  .col { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; min-width: 0; min-height: 0; }
+  .gauche { width: 41%; padding-right: 2vw; }
+  .droite { -webkit-flex: 1; flex: 1; }
+
+  .horloge { white-space: nowrap; line-height: .95; }
+  #hm { display: inline-block; font-weight: 300; letter-spacing: -.02em; font-size: 100px;
+    font-variant-numeric: tabular-nums; -webkit-font-feature-settings: "tnum"; font-feature-settings: "tnum"; }
+  #date { font-size: 3.6vh; color: #b9b4ac; margin-top: .6vh; }
+
+  .carte { background: #14171c; border-radius: 14px; padding: 1.8vh 1.4vw; margin-top: 2vh; overflow: hidden; }
+  .droite .carte:first-child { margin-top: 0; }
+  h2 { font-size: 1.8vh; letter-spacing: .14em; text-transform: uppercase; color: #7d858f; font-weight: 600; margin-bottom: 1.2vh; }
+  .vide { color: #6f7680; font-size: 2.4vh; }
+
+  /* Météo */
+  .m-now { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; }
+  .m-ic { font-size: 6vh; line-height: 1; margin-right: 1vw; }
+  .m-t { font-size: 6vh; font-weight: 300; margin-right: 1.2vw; }
+  .m-l { font-size: 2.1vh; color: #9aa1a9; line-height: 1.35; }
+  .m-l b { color: #e9e6e1; font-weight: 500; }
+  .m-jours { display: -webkit-flex; display: flex; margin-top: 1.4vh; border-top: 1px solid #22262d; padding-top: 1.2vh; }
+  .m-j { -webkit-flex: 1; flex: 1; text-align: center; font-size: 2vh; color: #b9b4ac; }
+  .m-j span { display: block; }
+  .m-j i { font-style: normal; color: #6f7680; }
+  .m-j small { display: block; color: #6c9ccf; font-size: 1.7vh; }
+  .m-ic2 { font-size: 3.2vh; line-height: 1.3; }
+
+  /* Claude */
+  .claude { -webkit-flex: 1; flex: 1; }
+  .lim { margin-bottom: 1.5vh; }
+  .lim-l { display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; font-size: 2.3vh; color: #b9b4ac; }
+  .lim-l b { color: #e9e6e1; font-weight: 600; }
+  .barre { height: 1.3vh; background: #232830; border-radius: 1vh; margin: .7vh 0 .5vh; overflow: hidden; }
+  .barre i { display: block; height: 100%; border-radius: 1vh; }
+  .vert { background: #d97757; } .orange { background: #e5a13a; } .rouge { background: #e5534b; }
+  .lim-r { font-size: 1.8vh; color: #6f7680; }
+  .lim.fini { opacity: .5; }
+  .maj { font-size: 1.7vh; color: #59606a; margin-top: .4vh; }
+  .maj.alerte { color: #c08a3e; }
+
+  /* Agenda */
+  .agenda { -webkit-flex: 1 1 auto; flex: 1 1 auto; min-height: 0; }
+  .jour { font-size: 2vh; color: #d97757; font-weight: 600; margin: 1.2vh 0 .5vh; }
+  #agenda .jour:first-child { margin-top: 0; }
+  .ev { display: -webkit-flex; display: flex; -webkit-align-items: baseline; align-items: baseline; font-size: 2.6vh; padding: .45vh 0; }
+  .pastille { width: 1.1vh; height: 1.1vh; border-radius: 50%; margin-right: .9vw; -webkit-flex: none; flex: none; position: relative; top: -.2vh; }
+  .ev-h { width: 5.2em; -webkit-flex: none; flex: none; color: #9aa1a9; font-variant-numeric: tabular-nums; font-size: .9em; }
+  .ev-t { -webkit-flex: 1; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ev.encours .ev-t { color: #fff; font-weight: 500; }
+  .ev.encours em { font-style: normal; font-size: .75em; color: #d97757; margin-left: .4em; }
+
+  /* Mails */
+  .mails { margin-top: 2vh; -webkit-flex: none; flex: none; max-height: 45%; }
+  .badge { display: inline-block; background: #d97757; color: #111; border-radius: 1vh; padding: 0 .7vh; margin-left: .6vh; letter-spacing: 0; }
+  .badge.zero { background: #2b3038; color: #7d858f; }
+  .mail { display: -webkit-flex; display: flex; -webkit-align-items: baseline; align-items: baseline; font-size: 2.35vh; padding: .5vh 0; border-top: 1px solid #1e2228; }
+  .mail:first-child { border-top: 0; }
+  .de { width: 30%; -webkit-flex: none; flex: none; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: .8vw; }
+  .obj { -webkit-flex: 1; flex: 1; min-width: 0; color: #b9b4ac; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mh { -webkit-flex: none; flex: none; color: #6f7680; font-size: .85em; padding-left: .8vw; }
+
+  /* Divers */
+  #etat { position: fixed; top: 1.2vh; right: 1vw; width: 1vh; height: 1vh; border-radius: 50%; background: #444; }
+  #etat.ok { background: #3c8c5a; } #etat.lent { background: #c08a3e; } #etat.ko { background: #e5534b; } #etat.demo { background: #6c9ccf; }
+  #msg { position: fixed; left: 0; right: 0; bottom: .6vh; text-align: center; font-size: 1.7vh; color: #c08a3e; }
+  #nuit { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; opacity: 0; pointer-events: none; -webkit-transition: opacity 3s; transition: opacity 3s; }
+
+  @media (orientation: portrait) {
+    #app { -webkit-flex-direction: column; flex-direction: column; padding: 2vh 3vw; }
+    .gauche { width: auto; padding-right: 0; }
+    .claude { -webkit-flex: none; flex: none; }
+    .droite { margin-top: 2vh; min-height: 0; -webkit-flex: 1; flex: 1; }
+    .m-jours { display: none; }
+    #date { font-size: 2.6vh; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <section class="col gauche">
+    <div class="horloge"><span id="hm">--:--</span></div>
+    <div id="date"></div>
+    <div class="carte" id="meteo"></div>
+    <div class="carte claude" id="claude"></div>
+  </section>
+  <section class="col droite">
+    <div class="carte agenda"><h2>Agenda</h2><div id="agenda"></div></div>
+    <div class="carte mails"><h2>Mails <span id="nbmails" class="badge zero"></span></h2><div id="mails"></div></div>
+  </section>
+</div>
+<div id="etat"></div>
+<div id="msg"></div>
+<div id="nuit"></div>
+
+<script>
+/* Écran tablette — JavaScript volontairement « à l'ancienne » (ES5) pour les vieux navigateurs Android */
+(function () {
+  'use strict';
+
+  var CLE = 'ecranTablette';
+  var INTERVALLE = 2 * 60000;        // rafraîchissement normal : 2 min
+  var INTERVALLE_ERREUR = 60000;     // après une erreur : 1 min
+  var RECHARGEMENT = 3 * 3600000;    // recharge la page toutes les 3 h (récupère les mises à jour GitHub)
+  var NUIT_DEBUT = 23, NUIT_FIN = 6; // écran assombri la nuit
+
+  var JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  var MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  var MOIS_C = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+  /* ---------- utilitaires ---------- */
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function deux(n) { return (n < 10 ? '0' : '') + n; }
+  function hm(d) { return deux(d.getHours()) + ':' + deux(d.getMinutes()); }
+  function debutJour(d) { var x = new Date(d.getTime()); x.setHours(0, 0, 0, 0); return x; }
+  function memeJour(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+  function majuscule(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function ymd(ms) { var d = new Date(ms); return d.getFullYear() + '-' + deux(d.getMonth() + 1) + '-' + deux(d.getDate()); }
+  function lireStock(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+  function ecrireStock(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+
+  function depuis(ms) {
+    if (!ms) return 'jamais';
+    var m = Math.round((Date.now() - ms) / 60000);
+    if (m < 1) return "à l'instant";
+    if (m < 60) return 'il y a ' + m + ' min';
+    var h = Math.floor(m / 60);
+    if (h < 24) return 'il y a ' + h + ' h' + (m % 60 ? ' ' + deux(m % 60) : '');
+    return 'il y a ' + Math.floor(h / 24) + ' j';
+  }
+  function dans(ms) {
+    var m = Math.round((ms - Date.now()) / 60000);
+    if (m <= 0) return 'maintenant';
+    if (m < 60) return 'dans ' + m + ' min';
+    if (m < 24 * 60) return 'dans ' + Math.floor(m / 60) + ' h ' + deux(m % 60);
+    var r = new Date(ms);
+    return JOURS[r.getDay()] + ' à ' + hm(r);
+  }
+
+  /* ---------- configuration (lien reçu par mail) ---------- */
+  function lireConfig() {
+    var h = location.hash.replace(/^#/, '');
+    if (h === 'reset') {
+      try { localStorage.removeItem(CLE + ':cfg'); localStorage.removeItem(CLE + ':data'); } catch (e) {}
+      return null;
+    }
+    var o = {};
+    if (h) {
+      var parts = h.split('&');
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i].indexOf('=');
+        if (p > 0) o[parts[i].slice(0, p)] = decodeURIComponent(parts[i].slice(p + 1));
+      }
+    }
+    if (o.u && o.k) {
+      var c = { u: o.u, k: o.k };
+      // Mémorisé : on retire le jeton de la barre d'adresse
+      if (ecrireStock(CLE + ':cfg', c) && history.replaceState) history.replaceState(null, '', location.pathname + location.search);
+      return c;
+    }
+    return lireStock(CLE + ':cfg');
+  }
+
+  /* ---------- JSONP (compatible avec tous les navigateurs) ---------- */
+  var seq = 0;
+  function jsonp(url, cb) {
+    var nom = '__ecran' + (++seq), s = document.createElement('script'), fini = false;
+    var minuteur = setTimeout(function () { fin(new Error('délai dépassé')); }, 25000);
+    function fin(err, data) {
+      if (fini) return;
+      fini = true;
+      clearTimeout(minuteur);
+      window[nom] = function () {};
+      if (s.parentNode) s.parentNode.removeChild(s);
+      cb(err, data);
+    }
+    window[nom] = function (d) { fin(null, d); };
+    s.onerror = function () { fin(new Error('pas de réseau')); };
+    s.src = url + (url.indexOf('?') < 0 ? '?' : '&') + 'callback=' + nom + '&_=' + Date.now();
+    document.body.appendChild(s);
+  }
+
+  /* ---------- horloge ---------- */
+  function majHorloge() {
+    var d = new Date(), t = hm(d), el = $('hm');
+    if (el.textContent !== t) el.textContent = t;
+    var ds = majuscule(JOURS[d.getDay()]) + ' ' + d.getDate() + ' ' + MOIS[d.getMonth()];
+    if ($('date').textContent !== ds) $('date').textContent = ds;
+    var h = d.getHours(), o = (h >= NUIT_DEBUT || h < NUIT_FIN) ? '0.6' : '0';
+    if ($('nuit').style.opacity !== o) $('nuit').style.opacity = o;
+  }
+  function ajusterHorloge() {
+    var el = $('hm'), w = el.parentNode.clientWidth;
+    el.style.fontSize = '100px';
+    var r = w / Math.max(1, el.offsetWidth);
+    var maxH = window.innerHeight * (window.innerHeight > window.innerWidth ? 0.11 : 0.27);
+    el.style.fontSize = Math.floor(Math.min(100 * r * 0.97, maxH)) + 'px';
+  }
+
+  /* ---------- météo ---------- */
+  var METEO = {
+    0: ['☀️', 'Ensoleillé'], 1: ['🌤️', 'Peu nuageux'], 2: ['⛅', 'Éclaircies'], 3: ['☁️', 'Couvert'],
+    45: ['🌫️', 'Brouillard'], 48: ['🌫️', 'Brouillard givrant'],
+    51: ['🌦️', 'Bruine'], 53: ['🌦️', 'Bruine'], 55: ['🌦️', 'Bruine'], 56: ['🌧️', 'Bruine verglaçante'], 57: ['🌧️', 'Bruine verglaçante'],
+    61: ['🌧️', 'Pluie faible'], 63: ['🌧️', 'Pluie'], 65: ['🌧️', 'Forte pluie'], 66: ['🌧️', 'Pluie verglaçante'], 67: ['🌧️', 'Pluie verglaçante'],
+    71: ['🌨️', 'Neige faible'], 73: ['🌨️', 'Neige'], 75: ['❄️', 'Forte neige'], 77: ['🌨️', 'Grésil'],
+    80: ['🌦️', 'Averses'], 81: ['🌧️', 'Averses'], 82: ['⛈️', 'Fortes averses'], 85: ['🌨️', 'Averses de neige'], 86: ['❄️', 'Averses de neige'],
+    95: ['⛈️', 'Orage'], 96: ['⛈️', 'Orage et grêle'], 99: ['⛈️', 'Orage et grêle']
+  };
+  function infoMeteo(c) { return METEO[c] || ['·', '']; }
+  function rendreMeteo(m) {
+    var el = $('meteo');
+    if (!m) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    var i = infoMeteo(m.code);
+    var html = '<div class="m-now"><span class="m-ic">' + i[0] + '</span><span class="m-t">' + Math.round(m.temp) + '°</span>' +
+      '<span class="m-l"><b>' + esc(m.ville) + '</b><br>' + esc(i[1]) + (m.vent != null ? ' · vent ' + Math.round(m.vent) + ' km/h' : '') + '</span></div>' +
+      '<div class="m-jours">';
+    for (var k = 0; k < (m.jours || []).length; k++) {
+      var j = m.jours[k], ji = infoMeteo(j.code), p = j.date.split('-');
+      var dd = new Date(+p[0], p[1] - 1, +p[2]);
+      var nom = k === 0 ? "Aujourd'hui" : k === 1 ? 'Demain' : majuscule(JOURS[dd.getDay()]);
+      html += '<div class="m-j"><span>' + nom + '</span><span class="m-ic2">' + ji[0] + '</span><span>' +
+        Math.round(j.max) + '° <i>' + Math.round(j.min) + '°</i></span>' +
+        (j.pluie != null ? '<small>pluie ' + j.pluie + ' %</small>' : '') + '</div>';
+    }
+    el.innerHTML = html + '</div>';
+  }
+
+  /* ---------- limites Claude Code ---------- */
+  function ligneLimite(nom, b, siNonNul) {
+    if (!b || b.pct == null) return '';
+    if (siNonNul && !(b.pct > 0)) return '';
+    var fini = b.reset && b.reset < Date.now();
+    var pct = fini ? 0 : Math.max(0, Math.min(100, b.pct));
+    var cls = pct >= 80 ? 'rouge' : pct >= 50 ? 'orange' : 'vert';
+    return '<div class="lim' + (fini ? ' fini' : '') + '">' +
+      '<div class="lim-l"><span>' + nom + '</span><b>' + Math.round(pct) + ' %</b></div>' +
+      '<div class="barre"><i class="' + cls + '" style="width:' + pct + '%"></i></div>' +
+      '<div class="lim-r">' + (fini ? 'réinitialisée' : b.reset ? 'réinitialisation ' + dans(b.reset) : '') + '</div></div>';
+  }
+  function rendreClaude(c) {
+    var html = '<h2>Claude Code</h2>';
+    if (!c || !c.usage) {
+      html += '<p class="vide">' + (c && c.erreur ? esc(c.erreur) : 'En attente du premier envoi depuis le PC…') + '</p>';
+    } else {
+      var u = c.usage;
+      html += ligneLimite('Session (5 h)', u.session) + ligneLimite('Semaine', u.semaine) +
+        ligneLimite('Semaine · Opus', u.opus, true) + ligneLimite('Semaine · Sonnet', u.sonnet, true);
+      var horsLigne = !c.ping || Date.now() - c.ping > 15 * 60000;
+      html += '<div class="maj' + (horsLigne || c.erreur ? ' alerte' : '') + '">' +
+        (horsLigne ? 'PC hors ligne · ' : '') + 'mis à jour ' + depuis(c.maj) +
+        (c.erreur && !horsLigne ? ' · ' + esc(c.erreur) : '') + '</div>';
+    }
+    $('claude').innerHTML = html;
+  }
+
+  /* ---------- agenda ---------- */
+  function dateEv(v) {
+    if (typeof v === 'string') { var p = v.split('-'); return new Date(+p[0], p[1] - 1, +p[2]); }
+    return new Date(v);
+  }
+  function libelleJour(d, auj) {
+    var dem = new Date(auj.getTime()); dem.setDate(dem.getDate() + 1);
+    if (memeJour(d, auj)) return "Aujourd'hui";
+    if (memeJour(d, dem)) return 'Demain';
+    return majuscule(JOURS[d.getDay()]) + ' ' + d.getDate() + ' ' + MOIS[d.getMonth()];
+  }
+  function rendreAgenda(liste) {
+    var now = new Date(), auj = debutJour(now), evs = [], i;
+    for (i = 0; i < (liste || []).length; i++) {
+      var e = liste[i], d = dateEv(e.debut), f = dateEv(e.fin);
+      if (f.getTime() <= now.getTime()) continue;            // déjà terminé
+      evs.push({ e: e, d: d, f: f, j: d < auj ? auj : debutJour(d) });
+    }
+    evs.sort(function (a, b) {
+      return (a.j - b.j) || ((b.e.jour ? 1 : 0) - (a.e.jour ? 1 : 0)) || (a.d - b.d);
+    });
+    if (!evs.length) { $('agenda').innerHTML = '<p class="vide">Rien de prévu ces prochains jours.</p>'; return; }
+    var html = '', jourCourant = '';
+    for (i = 0; i < evs.length; i++) {
+      var x = evs[i], cle = x.j.toDateString();
+      if (cle !== jourCourant) { jourCourant = cle; html += '<div class="jour">' + libelleJour(x.j, auj) + '</div>'; }
+      var enCours = !x.e.jour && x.d <= now && x.f > now;
+      var heure = x.e.jour ? 'Journée' : (x.d < auj ? '…' : hm(x.d));
+      html += '<div class="ev' + (enCours ? ' encours' : '') + '">' +
+        '<span class="pastille" style="background:' + esc(x.e.couleur || '#7aa2f7') + '"></span>' +
+        '<span class="ev-h">' + heure + '</span>' +
+        '<span class="ev-t">' + esc(x.e.titre || '(sans titre)') + (enCours ? '<em>en cours · fin ' + hm(x.f) + '</em>' : '') + '</span></div>';
+    }
+    $('agenda').innerHTML = html;
+  }
+
+  /* ---------- mails ---------- */
+  function rendreMails(m) {
+    var b = $('nbmails');
+    if (!m) { $('mails').innerHTML = ''; b.textContent = ''; return; }
+    b.textContent = m.nonLus >= 99 ? '99+' : String(m.nonLus);
+    b.className = 'badge' + (m.nonLus ? '' : ' zero');
+    if (!m.liste || !m.liste.length) { $('mails').innerHTML = '<p class="vide">Aucun mail non lu.</p>'; return; }
+    var now = new Date(), html = '';
+    for (var i = 0; i < m.liste.length; i++) {
+      var x = m.liste[i], d = new Date(x.date);
+      html += '<div class="mail"><span class="de">' + esc(x.de) + '</span><span class="obj">' + esc(x.objet) + '</span>' +
+        '<span class="mh">' + (memeJour(d, now) ? hm(d) : d.getDate() + ' ' + MOIS_C[d.getMonth()]) + '</span></div>';
+    }
+    $('mails').innerHTML = html;
+  }
+
+  /* ---------- données ---------- */
+  var CFG = lireConfig();
+  var DONNEES = CFG ? lireStock(CLE + ':data') : null;
+  var dernierOk = DONNEES && DONNEES.t ? DONNEES.t : 0;
+  var minuteur = null;
+
+  function message(t) { $('msg').textContent = t || ''; }
+  function majEtat() {
+    var age = Date.now() - dernierOk;
+    $('etat').className = !CFG ? 'demo' : (dernierOk && age < 5 * 60000) ? 'ok' : (dernierOk && age < 20 * 60000) ? 'lent' : 'ko';
+  }
+  function rendreTout() {
+    if (DONNEES) {
+      rendreMeteo(DONNEES.meteo);
+      rendreClaude(DONNEES.claude);
+      rendreAgenda(DONNEES.agenda);
+      rendreMails(DONNEES.mails);
+    }
+    majEtat();
+  }
+  function charger() {
+    clearTimeout(minuteur);
+    var url = CFG.u + (CFG.u.indexOf('?') < 0 ? '?' : '&') + 'k=' + encodeURIComponent(CFG.k) + '&d=' + debutJour(new Date()).getTime();
+    jsonp(url, function (err, res) {
+      if (!err && (!res || res.erreur)) err = new Error(res && res.erreur ? res.erreur : 'réponse vide');
+      if (err) {
+        message('Connexion impossible (' + err.message + ') · données ' + depuis(dernierOk));
+        majEtat();
+        minuteur = setTimeout(charger, INTERVALLE_ERREUR);
+        return;
+      }
+      DONNEES = res;
+      dernierOk = Date.now();
+      ecrireStock(CLE + ':data', res);
+      message('');
+      rendreTout();
+      minuteur = setTimeout(charger, INTERVALLE);
+    });
+  }
+
+  function demo() {
+    var n = Date.now(), a = debutJour(new Date()).getTime(), H = 3600000, J = 24 * H;
+    return {
+      t: n,
+      meteo: { ville: 'Chaumont', temp: 6.4, code: 2, vent: 14, jours: [
+        { date: ymd(a), code: 2, max: 8, min: 1, pluie: 10 },
+        { date: ymd(a + J), code: 61, max: 7, min: 3, pluie: 70 },
+        { date: ymd(a + 2 * J), code: 3, max: 6, min: 0, pluie: 20 }] },
+      claude: { ping: n - 2 * 60000, maj: n - 2 * 60000, usage: {
+        session: { pct: 37, reset: n + 2.2 * H }, semaine: { pct: 61, reset: a + 4 * J + 9 * H }, opus: null, sonnet: null } },
+      agenda: [
+        { titre: 'Exemple : réunion', debut: n - 0.5 * H, fin: n + 0.5 * H, couleur: '#7986cb' },
+        { titre: 'Exemple : rendez-vous', debut: a + 18 * H, fin: a + 19 * H, couleur: '#33b679' },
+        { titre: 'Exemple : journée entière', jour: true, debut: ymd(a + J), fin: ymd(a + 2 * J), couleur: '#e67c73' },
+        { titre: 'Exemple : appel', debut: a + J + 10 * H, fin: a + J + 11 * H, couleur: '#f6bf26' },
+        { titre: 'Exemple : entraînement', debut: a + 2 * J + 17 * H, fin: a + 2 * J + 19 * H, couleur: '#33b679' }],
+      mails: { nonLus: 3, liste: [
+        { de: 'Expéditeur 1', objet: 'Exemple d\'objet de mail un peu long pour voir la coupure', date: n - 20 * 60000 },
+        { de: 'Expéditeur 2', objet: 'Facture de novembre', date: n - 3 * H },
+        { de: 'Expéditeur 3', objet: 'Re : devis', date: n - 30 * H }] }
+    };
+  }
+
+  /* ---------- écran toujours allumé / plein écran ---------- */
+  var verrou = null;
+  function garderEveille() {
+    try {
+      if (navigator.wakeLock && !verrou) {
+        navigator.wakeLock.request('screen').then(function (l) {
+          verrou = l;
+          l.addEventListener('release', function () { verrou = null; });
+        })['catch'](function () {});
+      }
+    } catch (e) {}
+  }
+  document.addEventListener('click', function () {
+    garderEveille();
+    var d = document.documentElement, f = d.requestFullscreen || d.webkitRequestFullscreen;
+    if (f && !(document.fullscreenElement || document.webkitFullscreenElement)) {
+      try { var p = f.call(d); if (p && p['catch']) p['catch'](function () {}); } catch (e) {}
+    }
+    setTimeout(ajusterHorloge, 400);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') { garderEveille(); if (CFG) charger(); }
+  });
+
+  /* Recharge la page de temps en temps, seulement si le réseau répond (sinon on garderait une page d'erreur) */
+  function rechargerSiPossible() {
+    var x = new XMLHttpRequest();
+    x.open('GET', location.pathname + '?v=' + Date.now(), true);
+    x.timeout = 15000;
+    x.onload = function () { if (x.status === 200) location.reload(); else setTimeout(rechargerSiPossible, 10 * 60000); };
+    x.onerror = x.ontimeout = function () { setTimeout(rechargerSiPossible, 10 * 60000); };
+    x.send();
+  }
+
+  /* ---------- démarrage ---------- */
+  majHorloge();
+  ajusterHorloge();
+  setInterval(majHorloge, 1000);
+  window.addEventListener('resize', ajusterHorloge);
+  window.addEventListener('hashchange', function () { if (location.hash.length > 1) location.reload(); });
+  if (!CFG) {
+    DONNEES = demo();
+    message('Mode démo : ouvre sur la tablette le lien reçu par mail');
+    rendreTout();
+  } else {
+    rendreTout();
+    charger();
+  }
+  setInterval(rendreTout, 30000);
+  setTimeout(rechargerSiPossible, RECHARGEMENT);
+  garderEveille();
+})();
+</script>
+</body>
+</html>
