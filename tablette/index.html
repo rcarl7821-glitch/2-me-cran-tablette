@@ -76,6 +76,24 @@
   .obj { -webkit-flex: 1; flex: 1; min-width: 0; color: #b9b4ac; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mh { -webkit-flex: none; flex: none; color: #6f7680; font-size: .85em; padding-left: .8vw; }
 
+  /* Prochain événement + Spotify */
+  #proch { font-size: 2.2vh; color: #b9b4ac; margin-bottom: 1.6vh; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #proch:empty { display: none; }
+  #proch b { color: #d97757; font-weight: 600; }
+  button { font-family: inherit; }
+  .sp { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; height: 100%; }
+  .sp-img { width: 26vh; height: 26vh; border-radius: 10px; -webkit-flex: none; flex: none; margin-right: 2vw; background: #1d2127; }
+  .sp-r { -webkit-flex: 1; flex: 1; min-width: 0; }
+  .sp-t { font-size: 3.2vh; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sp-a { font-size: 2.3vh; color: #9aa1a9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1.2vh; }
+  .sp-tm { display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; font-size: 1.7vh; color: #6f7680; }
+  .sp-btns { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; margin-top: 1.4vh; }
+  .bt { -webkit-flex: 1; flex: 1; margin: 0 .5vw; background: #232830; border: 0; border-radius: 12px; color: #e9e6e1; font-size: 3.6vh; padding: 1.6vh 0; }
+  .bt:active { background: #3a414b; }
+  .bt.main { background: #d97757; color: #111; }
+  #sp-v { -webkit-flex: 2; flex: 2; text-align: center; color: #9aa1a9; font-size: 2.2vh; }
+  .sp-m { font-size: 2vh; color: #c08a3e; margin-top: 1vh; }
+
   /* Divers */
   #etat { position: fixed; top: 1.2vh; right: 1vw; width: 1vh; height: 1vh; border-radius: 50%; background: #444; }
   #etat.ok { background: #3c8c5a; } #etat.lent { background: #c08a3e; } #etat.ko { background: #e5534b; } #etat.demo { background: #6c9ccf; }
@@ -101,7 +119,8 @@
     <div class="carte claude" id="claude"></div>
   </section>
   <section class="col droite">
-    <div class="carte agenda"><h2>Agenda</h2><div id="agenda"></div></div>
+    <div id="proch"></div>
+    <div class="carte agenda" id="spotify"></div>
     <div class="carte mails"><h2>Mails <span id="nbmails" class="badge zero"></span></h2><div id="mails"></div></div>
   </section>
 </div>
@@ -209,6 +228,7 @@
     if ($('date').textContent !== ds) $('date').textContent = ds;
     var h = d.getHours(), o = (h >= NUIT_DEBUT || h < NUIT_FIN) ? '0.6' : '0';
     if ($('nuit').style.opacity !== o) $('nuit').style.opacity = o;
+    majBarreSpotify();
   }
   function ajusterHorloge() {
     var el = $('hm'), w = el.parentNode.clientWidth;
@@ -288,28 +308,18 @@
     return majuscule(JOURS[d.getDay()]) + ' ' + d.getDate() + ' ' + MOIS[d.getMonth()];
   }
   function rendreAgenda(liste) {
-    var now = new Date(), auj = debutJour(now), evs = [], i;
+    var now = new Date(), best = null, i;
     for (i = 0; i < (liste || []).length; i++) {
-      var e = liste[i], d = dateEv(e.debut), f = dateEv(e.fin);
-      if (f.getTime() <= now.getTime()) continue;            // déjà terminé
-      evs.push({ e: e, d: d, f: f, j: d < auj ? auj : debutJour(d) });
+      var e = liste[i];
+      if (e.jour) continue;
+      var d = dateEv(e.debut), f = dateEv(e.fin);
+      if (f <= now) continue;
+      if (!best || d < best.d) best = { e: e, d: d, f: f };
     }
-    evs.sort(function (a, b) {
-      return (a.j - b.j) || ((b.e.jour ? 1 : 0) - (a.e.jour ? 1 : 0)) || (a.d - b.d);
-    });
-    if (!evs.length) { $('agenda').innerHTML = '<p class="vide">Rien de prévu ces prochains jours.</p>'; return; }
-    var html = '', jourCourant = '';
-    for (i = 0; i < evs.length; i++) {
-      var x = evs[i], cle = x.j.toDateString();
-      if (cle !== jourCourant) { jourCourant = cle; html += '<div class="jour">' + libelleJour(x.j, auj) + '</div>'; }
-      var enCours = !x.e.jour && x.d <= now && x.f > now;
-      var heure = x.e.jour ? 'Journée' : (x.d < auj ? '…' : hm(x.d));
-      html += '<div class="ev' + (enCours ? ' encours' : '') + '">' +
-        '<span class="pastille" style="background:' + esc(x.e.couleur || '#7aa2f7') + '"></span>' +
-        '<span class="ev-h">' + heure + '</span>' +
-        '<span class="ev-t">' + esc(x.e.titre || '(sans titre)') + (enCours ? '<em>en cours · fin ' + hm(x.f) + '</em>' : '') + '</span></div>';
-    }
-    $('agenda').innerHTML = html;
+    if (!best) { $('proch').innerHTML = ''; return; }
+    var enCours = best.d <= now;
+    $('proch').innerHTML = (enCours ? 'En cours' : 'Prochain') + ' : <b>' + esc(best.e.titre) + '</b> · ' +
+      (enCours ? "jusqu'à " + hm(best.f) : dans(best.d.getTime()));
   }
 
   /* ---------- mails ---------- */
@@ -326,6 +336,81 @@
         '<span class="mh">' + (memeJour(d, now) ? hm(d) : d.getDate() + ' ' + MOIS_C[d.getMonth()]) + '</span></div>';
     }
     $('mails').innerHTML = html;
+  }
+
+  /* ---------- Spotify ---------- */
+  var SP = null, spRecu = 0, spImg = null, spTimer = null;
+  var MSG_SP = {
+    config: 'Spotify pas encore configuré',
+    connexion: 'Spotify pas connecté : touche « Connecter Spotify » dans le mail',
+    premium: 'Spotify Premium requis',
+    appareil: 'Aucun appareil actif : lance Spotify sur le téléphone'
+  };
+  function mmss(ms) { var s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ':' + deux(s % 60); }
+  function construireSpotify() {
+    $('spotify').innerHTML =
+      '<div class="sp"><img id="sp-img" class="sp-img" alt="" style="display:none">' +
+      '<div class="sp-r"><div id="sp-t" class="sp-t">Spotify</div><div id="sp-a" class="sp-a">&nbsp;</div>' +
+      '<div class="barre"><i id="sp-b" class="vert" style="width:0%"></i></div>' +
+      '<div class="sp-tm"><span id="sp-p">0:00</span><span id="sp-d">0:00</span></div>' +
+      '<div class="sp-btns"><button class="bt" data-c="prev">&#9664;&#9664;</button><button class="bt main" id="sp-pp" data-c="pp">&#9654;</button><button class="bt" data-c="next">&#9654;&#9654;</button></div>' +
+      '<div class="sp-btns"><button class="bt" data-c="vm">&minus;</button><span id="sp-v"></span><button class="bt" data-c="vp">+</button></div>' +
+      '<div id="sp-m" class="sp-m"></div></div></div>';
+    $('spotify').onclick = function (ev) {
+      var t = ev.target || ev.srcElement;
+      while (t && t !== this && !(t.getAttribute && t.getAttribute('data-c'))) t = t.parentNode;
+      if (t && t.getAttribute && t.getAttribute('data-c')) commandeSp(t.getAttribute('data-c'));
+    };
+  }
+  function majBarreSpotify() {
+    if (!SP || !SP.actif || !$('sp-b')) return;
+    var pos = SP.pos + (SP.joue ? Date.now() - spRecu : 0);
+    if (SP.dur) pos = Math.min(pos, SP.dur);
+    $('sp-b').style.width = (SP.dur ? Math.round(100 * pos / SP.dur) : 0) + '%';
+    $('sp-p').textContent = mmss(pos);
+    $('sp-d').textContent = mmss(SP.dur);
+  }
+  function majSpotify(s) {
+    if (!s) return;
+    var m = s.erreur ? (MSG_SP[s.erreur] || s.erreur) : (s.actif === false ? 'Rien en lecture : lance une musique sur le téléphone' : '');
+    $('sp-m').textContent = m;
+    if (s.actif) {
+      SP = s; spRecu = Date.now();
+      $('sp-t').textContent = s.titre || '—';
+      $('sp-a').textContent = s.artiste || '\u00a0';
+      $('sp-pp').innerHTML = s.joue ? '&#10074;&#10074;' : '&#9654;';
+      $('sp-v').textContent = s.vol != null ? 'Volume ' + s.vol + ' %' : '';
+      var im = $('sp-img');
+      if (s.image) { if (spImg !== s.image) { spImg = s.image; im.src = s.image; } im.style.display = ''; }
+      else { im.style.display = 'none'; spImg = null; }
+      majBarreSpotify();
+    } else if (!s.erreur) {
+      SP = null; $('sp-t').textContent = 'Spotify'; $('sp-a').innerHTML = '&nbsp;';
+      $('sp-b').style.width = '0%'; $('sp-img').style.display = 'none'; spImg = null;
+      $('sp-p').textContent = '0:00'; $('sp-d').textContent = '0:00'; $('sp-v').textContent = '';
+    }
+  }
+  function pollSp() {
+    clearTimeout(spTimer);
+    jsonp(spUrl('&sp=1'), function (err, res) {
+      if (!err && res && res.spotify) majSpotify(res.spotify);
+      spTimer = setTimeout(pollSp, (SP && SP.joue) ? 10000 : 30000);
+    });
+  }
+  function spUrl(extra) { return CFG.u + (CFG.u.indexOf('?') < 0 ? '?' : '&') + 'k=' + encodeURIComponent(CFG.k) + extra; }
+  function commandeSp(c) {
+    if (!CFG) return;
+    var cmd = c, v = null;
+    if (c === 'pp') { cmd = (SP && SP.joue) ? 'pause' : 'play'; if (SP) { SP.pos += SP.joue ? Date.now() - spRecu : 0; spRecu = Date.now(); SP.joue = !SP.joue; $('sp-pp').innerHTML = SP.joue ? '&#10074;&#10074;' : '&#9654;'; } }
+    else if (c === 'vm' || c === 'vp') {
+      cmd = 'vol'; v = Math.max(0, Math.min(100, ((SP && SP.vol != null) ? SP.vol : 50) + (c === 'vp' ? 10 : -10)));
+      if (SP) { SP.vol = v; $('sp-v').textContent = 'Volume ' + v + ' %'; }
+    }
+    clearTimeout(spTimer);
+    jsonp(spUrl('&cmd=' + cmd + (v != null ? '&v=' + v : '')), function (err, res) {
+      if (!err && res && res.spotify) majSpotify(res.spotify);
+      spTimer = setTimeout(pollSp, 10000);
+    });
   }
 
   /* ---------- données ---------- */
@@ -412,7 +497,7 @@
     setTimeout(ajusterHorloge, 400);
   });
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') { garderEveille(); if (CFG) charger(); }
+    if (document.visibilityState === 'visible') { garderEveille(); if (CFG) { charger(); pollSp(); } }
   });
 
   /* Recharge la page de temps en temps, seulement si le réseau répond (sinon on garderait une page d'erreur) */
@@ -439,6 +524,8 @@
     rendreTout();
     charger();
   }
+  construireSpotify();
+  if (!CFG) majSpotify({ actif: true, joue: true, titre: 'Exemple de titre', artiste: 'Artiste', image: '', pos: 65000, dur: 210000, vol: 40 }); else pollSp();
   setInterval(rendreTout, 30000);
   setTimeout(rechargerSiPossible, RECHARGEMENT);
   garderEveille();
